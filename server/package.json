@@ -1,0 +1,23 @@
+{
+  "name": "controller-server",
+  "version": "0.1.0",
+  "description": "controller00 server",
+  "main": "out/index.js",
+  "bin": {
+    "ctrl00": "out/bin.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx tsc"
+  },
+  "author": "rwilliaise",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^20.10.5",
+    "@types/ws": "^8.5.10",
+    "@types/yargs": "^17.0.32",
+    "typescript": "^5.3.3",
+    "ws": "^8.15.1",
+    "yargs": "^17.7.2"
+  }
+}

@@ -1,8 +1,12 @@
 
-local CONFIG_LOCATION = "/controller.cfg"
+local CONFIG_LOCATION = "/ctrl.cfg"
 
 local module = {}
-module.config = {}
+module.config = {
+    url = "ws://localhost:8080",
+    agent = "controller00 turtle",
+    think_rate = 2,
+}
 
 function module.load()
     local f = io.open(CONFIG_LOCATION, "r")

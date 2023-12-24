@@ -1,8 +1,12 @@
 
 local state = require("state")
+local config = require("config")
 
-local S = state.new()
-S:updateState()
+config.load()
+
+local S = state.new(config.config)
+
+S:open()
 S:save()
-
+config.save()
 
