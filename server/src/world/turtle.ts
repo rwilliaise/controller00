@@ -109,6 +109,7 @@ export class Turtle {
 
         try {
             for (const data of (obj.data as UpdateWorldData[])) {
+                if (data.data !== undefined && data.data.name === "minecraft:air") continue
                 this.world.setBlock(
                     new Vector3(
                         data.pos.x,

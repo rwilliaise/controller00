@@ -1,4 +1,4 @@
-lua ./amalg.lua -s init.lua -o dist.lua -- \
+lua ../../amalg.lua -s init.lua -o dist.lua -- \
     config \
     state \
     state.inventory \
