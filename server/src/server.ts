@@ -14,12 +14,18 @@ export class Server {
     turtles = new Set<Turtle>()
     currentUid = 0
 
+    saveLocation = this.argv.save ?? "save"
+
     constructor(public argv: Args) {
         this.socket.on("connection", (socket, request) => this.connected(socket, request))
     }
 
     async connected(socket: WebSocket, request: IncomingMessage) {
         this.world.add(socket)
+    }
+
+    async save() {
+
     }
 }
 

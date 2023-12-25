@@ -29,6 +29,10 @@ function Net.receive()
     packet[object.id](object)
 end
 
+function Net.log(message)
+    Net.send("log", message)
+end
+
 function Net.send(object, arg)
     if type(object) == "string" then
         return Net.send({ id = object, data = arg })

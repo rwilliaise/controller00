@@ -1,6 +1,6 @@
 import {Server} from "../server"
 
-export default function kick(server: Server, args: string[]) {
+export default function rethink(server: Server, args: string[]) {
     const id = parseInt(args[0] ?? "-1")
     if (id === -1) {
         console.log("Supply a turtle id.")
@@ -9,7 +9,7 @@ export default function kick(server: Server, args: string[]) {
 
     for (const t of server.turtles) {
         if (t.uid === id) {
-            t.ws.close()
+            t.sendData("rethink", undefined)
             return
         }
     }

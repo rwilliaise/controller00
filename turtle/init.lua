@@ -11,7 +11,9 @@ Net.connect()
 State.upload()
 
 parallel.waitForAny(
-    function() Machine.open() end,
-    function() Net.open() end
+    Machine.open,
+    Net.open
 )
+
+Net.socket.close()
 

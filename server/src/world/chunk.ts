@@ -14,8 +14,36 @@ export class Chunk {
         return this.palette.get(pid)
     }
 
-    setBlock(pos: Vector3, state: BlockState) {
-        
+    findOpenPid() {
+        let out = 0
+        while (true) {
+            if (!this.palette.has(out)) {
+                return out
+            }
+            out++
+        }
+    }
+
+    setBlock(pos: Vector3, state?: BlockState) {
+        if (pos.x < 0 || pos.x >= CHUNK_WIDTH) { return } // just check
+        if (pos.y < 0 || pos.y >= CHUNK_HEIGHT) { return }
+        if (pos.z < 0 || pos.z >= CHUNK_WIDTH) { return }
+        if (state === undefined) {
+            delete this.blocks[pos.z * CHUNK_WIDTH * CHUNK_HEIGHT + pos.y * CHUNK_WIDTH + pos.x]
+            return
+        }
+        let outPid = -1
+        for (const [pid, pstate] of this.palette.entries()) {
+            if (state.name === pstate.name && state.meta === pstate.meta) {
+                outPid = pid
+                break
+            }
+        }
+        if (outPid === -1) {
+            outPid = this.findOpenPid()
+            this.palette.set(outPid, state)
+        }
+        this.blocks[pos.z * CHUNK_WIDTH * CHUNK_HEIGHT + pos.y * CHUNK_WIDTH + pos.x] = outPid
     }
 
     

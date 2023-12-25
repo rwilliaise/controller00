@@ -25,8 +25,5 @@ const options = yargs(process.argv.slice(2))
     .parseSync()
 
 export type Args = typeof options
-const server = new Server(options)
-
-
-
+new Server(options)
 

@@ -5,12 +5,19 @@ import { Chunk, CHUNK_WIDTH } from "./chunk"
 import { Turtle } from "./turtle"
 import { Server } from "../server"
 
+import * as fs from "node:fs/promises"
+import path from "node:path"
+import * as zlib from "node:zlib"
+import { promisify } from "node:util"
+
 type Vector3s = string
 
 export class World {
     address?: string
     turtles = new Set<Turtle>()
     chunks = new Map<string, Chunk>()
+
+    wid = 0
 
     constructor(public server: Server, private location: string) {}
 
@@ -30,6 +37,15 @@ export class World {
         return this.chunks.get(pos.toString())
     }
 
+    getOrCreateChunk(pos: Vector2): Chunk {
+        let out = this.chunks.get(pos.toString())
+        if (out === undefined) {
+            out = new Chunk()
+            this.chunks.set(pos.toString(), out)
+        }
+        return out
+    }
+
     getBlock(pos: Vector3): BlockState | undefined {
         const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
         const chunk = this.getChunk(chunkPos)
@@ -41,12 +57,38 @@ export class World {
         ))
     }
 
-    load() {
-
+    setBlock(pos: Vector3, state?: BlockState) {
+        const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
+        const chunk = this.getOrCreateChunk(chunkPos)
+        chunk.setBlock(new Vector3(
+            pos.x % CHUNK_WIDTH,
+            pos.y,
+            pos.z % CHUNK_WIDTH,
+        ), state)
     }
 
-    save() {
+    load() {
+    }
 
+    async save() {
+        const folderPath = path.join(this.server.saveLocation, String(this.wid))
+        const folder = await fs.mkdir(folderPath, { recursive: true })
+
+
+        const promises = []
+        for (const [pos, chunk] of this.chunks.entries()) {
+            const chunkPath = path.join(folderPath, pos)
+
+            promises.push(
+                promisify(zlib.deflate)(
+                    JSON.stringify({
+                        blocks: chunk.blocks,
+                        palette: Array.from(chunk.palette.entries())
+                    })
+                ).then(b => fs.writeFile(chunkPath, b))
+            )
+        }
+        await Promise.all(promises)
     }
 
     private heuristic(start: Vector3, end: Vector3) {
@@ -83,6 +125,8 @@ export class World {
     searchPath(start: Vector3, end: Vector3) {
         // this function is a plight on man
         // this function does and continues to drag humanity down
+        if (start.equals(end)) return
+
         const open = new Set<Vector3s>()
         const from = new Map<Vector3s, Vector3s>()
         open.add(start.toString())

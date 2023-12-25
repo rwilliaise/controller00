@@ -31,7 +31,9 @@ end
 
 function Machine.open()
     Machine.thread = coroutine.running()
-    while true do
+    Machine.alive = true
+
+    while Machine.alive do
         local continue_state = states[Machine.state]
         if not Machine.state or not continue_state then
             Machine.change_state("idle")
@@ -43,5 +45,6 @@ function Machine.open()
 
         -- sleep(1 / self.config.think_rate)
     end
+    print("Closing.")
 end
 

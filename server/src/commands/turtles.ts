@@ -6,10 +6,11 @@ export default function turtles(server: Server, args: string[]) {
         table[`Turtle ${turtle.uid}`] = {
             fuel: turtle.fuel ?? "unknown",
             position: turtle.pos.toString(),
+            direction: turtle.direction,
             inventory: `${turtle.inventory.reduce(
                 (n, c) => c.name !== undefined ? n + 1 : n,
                 0
-            )} item(s)`
+            )} item(s)`,
         }
     }
     console.table(table)

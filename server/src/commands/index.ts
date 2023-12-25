@@ -5,6 +5,9 @@ import { stdin as input, stdout as output } from "node:process"
 import turtles from "./turtles";
 import exit from "./exit";
 import kick from "./kick";
+import move from "./move";
+import rethink from "./rethink";
+import save from "./save";
 
 type CommandsList = { [x: string]: ((server: Server, args: string[]) => void) | ((server: Server, args: string[]) => Promise<void>) }
 
@@ -13,6 +16,9 @@ export class Commands {
         turtles,
         exit,
         kick,
+        move,
+        rethink,
+        save,
     }
     interface = readline.createInterface({
         input,

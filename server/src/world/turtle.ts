@@ -2,11 +2,17 @@ import WebSocket, { RawData } from "ws";
 import { World } from ".";
 import {Vector3} from "../math";
 import { Item } from "./item";
+import {BlockState} from "./block";
 
 type PacketCallback = (this: Turtle, obj: any) => void
-interface TurtleSafetyNet {
-    introduce: PacketCallback
-    update_state: PacketCallback
+
+const DIRECTIONS = {
+    u: new Vector3(0, 1, 0),
+    d: new Vector3(0, -1, 0),
+    n: new Vector3(0, 0, -1),
+    s: new Vector3(0, 0, 1),
+    w: new Vector3(-1, 0, 0),
+    e: new Vector3(1, 0, 0),
 }
 
 interface TurtleState {
@@ -17,19 +23,32 @@ interface TurtleState {
         right: Item
     }
     position: { x: number, y: number, z: number }
+    direction: string
+}
+
+type UpdateWorldData = {
+    pos: { x: number, y: number, z: number }
+    data: {
+        name: string
+        metadata: number
+    }
 }
 
 export class Turtle {
     id = -1
     uid = -1
-    net: TurtleSafetyNet = {
+    net: { [x: string]: PacketCallback }  = {
         introduce: this.introduce,
         update_state: this.updateState,
+        update_world: this.updateWorld,
+        request_path: this.requestPath,
+        log: this.log,
     }
     moveTo?: Vector3
     pos = new Vector3()
     inventory: Item[] = []
     fuel?: number
+    direction = "unknown"
 
     constructor(public world: World, public ws: WebSocket) {
         this.ws.on("message", (data, bin) => this.receive(data, bin))
@@ -59,6 +78,10 @@ export class Turtle {
         this.ws.send(JSON.stringify(obj))
     }
 
+    sendData(id: string, data: any) {
+        this.send({ id, data })
+    }
+
     introduce(obj: any) {
         if (typeof obj.data !== "number") return
         this.id = obj.data
@@ -77,10 +100,79 @@ export class Turtle {
 
             this.inventory = state.inventory
             this.fuel = state.fuel
+            this.direction = state.direction
         } catch {}
     }
 
-    newPath(to: Vector3) {
+    updateWorld(obj: any) {
+        if (obj.data === undefined) return
+
+        try {
+            for (const data of (obj.data as UpdateWorldData[])) {
+                this.world.setBlock(
+                    new Vector3(
+                        data.pos.x,
+                        data.pos.y,
+                        data.pos.z,
+                    ),
+                    data.data !== undefined ? new BlockState(data.data.name, data.data.metadata ?? 0) : undefined
+                )
+
+            }
+        } catch (e) {
+            console.log(`Failed to update world: ${e}`)
+        }
+    }
+
+    requestPath(obj: any) {
+        this.findPath()
+    }
+    
+    log(obj: any) {
+        console.log(`Turtle ${this.uid}: ${obj.data}`)
+    }
+
+    findPath() {
+        if (this.moveTo === undefined) return
+        if (this.moveTo.equals(this.pos) || this.world.getBlock(this.moveTo) !== undefined) {
+            this.moveTo = undefined
+            return
+        }
+        const path = this.world.searchPath(this.pos, this.moveTo)
         
+        if (path === undefined) return
+        let data = ""
+
+        let lastPoint = path[0]
+        for (let i = 1; i < path.length; i++) {
+            const point = path[i]
+            const delta = point.subv(lastPoint)
+            lastPoint = point
+
+            let direction
+            for (const [dir, v] of Object.entries(DIRECTIONS)) {
+                if (v.equals(delta)) {
+                    direction = dir
+                }
+            }
+            data += direction ?? ""
+        }
+
+        // console.log(`Using ${data.length} fuel.`)
+
+        if (data.length > (this.fuel ?? 0)) {
+            console.log(`Turtle ${this.uid} does not have enough fuel. Aborting path.`)
+            return
+        }
+        this.sendData("follow_path", data)
+    }
+
+    newPath(to: Vector3) {
+        if (to.equals(this.pos)) {
+            this.moveTo = undefined
+            return
+        }
+        this.moveTo = to
+        this.findPath()
     }
 }

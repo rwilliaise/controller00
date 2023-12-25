@@ -37,5 +37,9 @@ export class Vector3 {
     add(x = 0, y = 0, z = 0) {
         return new Vector3(this.x + x, this.y + y, this.z + z)
     }
+
+    subv(that: Vector3) {
+        return new Vector3(this.x - that.x, this.y - that.y, this.z - that.z)
+    }
 }
 

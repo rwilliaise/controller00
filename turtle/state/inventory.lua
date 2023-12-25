@@ -46,7 +46,7 @@ function State.equip_item(item)
     return true, "left"
 end
 
-function State.unequip_item(item)
+function State.unequip_item()
     if State.last_slot and State.last_equip_slot then
         turtle.equipLeft()
         turtle.select(State.last_slot)
