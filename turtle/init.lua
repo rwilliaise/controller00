@@ -1,12 +1,17 @@
 
-local state = require("state")
-local config = require("config")
+require("config")
+require("net")
+require("state")
+require("state.machine")
 
-config.load()
+Config.load_or_create()
+State.load()
 
-local S = state.new(config.config)
+Net.connect()
+State.upload()
 
-S:open()
-S:save()
-config.save()
+parallel.waitForAny(
+    function() Machine.open() end,
+    function() Net.open() end
+)
 

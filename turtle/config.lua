@@ -1,28 +1,34 @@
 
-local CONFIG_LOCATION = "/ctrl.cfg"
+CONFIG_LOCATION = "/ctrl.cfg"
 
-local module = {}
-module.config = {
+Config = {}
+Config.config = {
     url = "ws://localhost:8080",
-    agent = "controller00 turtle",
+    agent = "turtle (controller00)",
     think_rate = 2,
 }
 
-function module.load()
-    local f = io.open(CONFIG_LOCATION, "r")
-    if f == nil then return end
-    local str = f:read("a")
-    module.config = textutils.unserialize(str)
-    f:close()
+function Config.load_or_create()
+    if not Config.load() then
+        Config.save()
+    end
 end
 
-function module.save()
+function Config.load()
+    local f = io.open(CONFIG_LOCATION, "r")
+    if f == nil then return false end
+    local str = f:read("*a")
+    Config.config = textutils.unserialize(str)
+    f:close()
+    return true
+end
+
+function Config.save()
     local f = io.open(CONFIG_LOCATION, "w")
     if f == nil then return end
-    local str = textutils.serialize(module.config)
-    f:write(str)
+    f:write(textutils.serialize(Config.config))
     f:flush()
     f:close()
 end
 
-return module
+

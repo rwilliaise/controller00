@@ -16,6 +16,7 @@ interface TurtleState {
         left: Item
         right: Item
     }
+    position: { x: number, y: number, z: number }
 }
 
 export class Turtle {
@@ -25,18 +26,25 @@ export class Turtle {
         introduce: this.introduce,
         update_state: this.updateState,
     }
+    moveTo?: Vector3
     pos = new Vector3()
+    inventory: Item[] = []
+    fuel?: number
 
-    constructor(private world: World, private ws: WebSocket) {
+    constructor(public world: World, public ws: WebSocket) {
         this.ws.on("message", (data, bin) => this.receive(data, bin))
+        this.ws.on("close", (code, reason) => this.close(code, reason))
+    }
+
+    close(code: number, reason: Buffer) {
+        console.log(`Turtle ${this.uid} (sid: ${this.id}) closing: ${code} ${reason.toString()}`)
+        this.world.remove(this)
     }
 
     receive(data: RawData, bin: boolean) {
         if (bin) return
         const str = data.toString()
         const obj = JSON.parse(str)
-
-        console.log(obj)
         
         if (obj == undefined) return
         if (!("id" in obj)) return
@@ -54,20 +62,25 @@ export class Turtle {
     introduce(obj: any) {
         if (typeof obj.data !== "number") return
         this.id = obj.data
+        this.uid = this.world.server.currentUid++
+        console.log(`Turtle ${this.uid} (sid: ${this.id}) joined.`)
     }
 
     updateState(obj: any) {
         if (typeof obj.data !== "object") return
-        if (typeof obj.data.position !== "object") return
-        const pos = obj.data.position
-        this.pos.x = pos.x
-        this.pos.y = pos.y
-        this.pos.z = pos.z
+        const state = obj.data as TurtleState
+        try {
+            const pos = state.position
+            this.pos.x = pos.x
+            this.pos.y = pos.y
+            this.pos.z = pos.z
 
-        this.send({ id: "follow_path", path: this.world.searchPath(this.pos, this.pos.add(25, 10, 15)) })
+            this.inventory = state.inventory
+            this.fuel = state.fuel
+        } catch {}
     }
 
-    newPath() {
-
+    newPath(to: Vector3) {
+        
     }
 }

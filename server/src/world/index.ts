@@ -3,20 +3,27 @@ import { Vector2, Vector3 } from "../math"
 import { BlockState } from "./block"
 import { Chunk, CHUNK_WIDTH } from "./chunk"
 import { Turtle } from "./turtle"
+import { Server } from "../server"
 
 type Vector3s = string
 
 export class World {
     address?: string
-    turtles: Turtle[] = []
+    turtles = new Set<Turtle>()
     chunks = new Map<string, Chunk>()
 
-    constructor(private location: string) {}
+    constructor(public server: Server, private location: string) {}
 
     add(socket: WebSocket) {
         const turtle = new Turtle(this, socket)
-        this.turtles.push(turtle)
+        this.turtles.add(turtle)
+        this.server.turtles.add(turtle)
         return turtle
+    }
+
+    remove(turtle: Turtle) {
+        this.turtles.delete(turtle)
+        this.server.turtles.delete(turtle)
     }
 
     getChunk(pos: Vector2): Chunk | undefined {
