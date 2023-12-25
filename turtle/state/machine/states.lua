@@ -36,6 +36,7 @@ function module.stop_idle()
 end
 
 function module.idle()
+    print("Idling.")
     while true do
         local event = os.pullEventRaw()
         if event == "terminate" then

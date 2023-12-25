@@ -3,6 +3,7 @@ local module = {}
 
 function module.follow_path(object)
     if not object.data then return end
+    print("Received path:", object.data)
     State.start_path(object.data)
 end
 
