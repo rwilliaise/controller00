@@ -25,9 +25,9 @@ export class Chunk {
     }
 
     setBlock(pos: Vector3, state?: BlockState) {
-        if (pos.x < 0 || pos.x >= CHUNK_WIDTH) { return } // just check
-        if (pos.y < 0 || pos.y >= CHUNK_HEIGHT) { return }
-        if (pos.z < 0 || pos.z >= CHUNK_WIDTH) { return }
+        if (pos.x < 0 || pos.x >= CHUNK_WIDTH) return // just check
+        if (pos.y < 0 || pos.y >= CHUNK_HEIGHT) return
+        if (pos.z < 0 || pos.z >= CHUNK_WIDTH) return
         if (state === undefined) {
             delete this.blocks[pos.z * CHUNK_WIDTH * CHUNK_HEIGHT + pos.y * CHUNK_WIDTH + pos.x]
             return

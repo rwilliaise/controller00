@@ -45,7 +45,7 @@ end
 function Net.open()
     while true do
         print("Reconnecting.")
-        local success, error = pcall(function()
+        local _, error = pcall(function()
             Net.connect()
             State.upload()
             while true do
