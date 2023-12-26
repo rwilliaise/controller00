@@ -16,7 +16,6 @@ export class World {
     address?: string
     turtles = new Set<Turtle>()
     chunks = new Map<string, Chunk>()
-
     wid = 0
 
     constructor(public server: Server, private location: string) {}
@@ -31,14 +30,36 @@ export class World {
     remove(turtle: Turtle) {
         this.turtles.delete(turtle)
         this.server.turtles.delete(turtle)
+        this.save()
     }
 
-    getChunk(pos: Vector2): Chunk | undefined {
-        return this.chunks.get(pos.toString())
+    getFolderPath() {
+        return path.join(this.server.saveLocation, String(this.wid))
     }
 
-    getOrCreateChunk(pos: Vector2): Chunk {
+    async getChunk(pos: Vector2): Promise<Chunk | undefined> {
         let out = this.chunks.get(pos.toString())
+        if (out === undefined) {
+            const chunkPath = path.join(this.getFolderPath(), pos.toString())
+            try {
+                const chunk = await fs.readFile(chunkPath)
+                    .then(b => promisify(zlib.inflate)(b))
+                    .then(b => b.toString())
+                    .then(s => JSON.parse(s))
+                out = new Chunk()
+                out.blocks = chunk.blocks
+                out.palette = new Map(chunk.palette)
+                this.chunks.set(pos.toString(), out)
+            } catch {
+                console.log("bro?")
+                return undefined
+            }
+        }
+        return out
+    }
+
+    async getOrCreateChunk(pos: Vector2): Promise<Chunk> {
+        let out = await this.getChunk(pos)
         if (out === undefined) {
             out = new Chunk()
             this.chunks.set(pos.toString(), out)
@@ -46,10 +67,10 @@ export class World {
         return out
     }
 
-    getBlock(pos: Vector3): BlockState | undefined {
+    async getBlock(pos: Vector3): Promise<BlockState | undefined> {
         const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
-        const chunk = this.getChunk(chunkPos)
-        if (chunk === undefined) return
+        const chunk = await this.getChunk(chunkPos)
+        if (chunk === undefined) return undefined
         return chunk.getBlock(new Vector3(
             pos.x % CHUNK_WIDTH,
             pos.y,
@@ -59,25 +80,24 @@ export class World {
 
     setBlock(pos: Vector3, state?: BlockState) {
         const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
-        const chunk = this.getOrCreateChunk(chunkPos)
-        chunk.setBlock(new Vector3(
-            pos.x % CHUNK_WIDTH,
-            pos.y,
-            pos.z % CHUNK_WIDTH,
-        ), state)
+        this.getOrCreateChunk(chunkPos)
+            .then(chunk => {
+                chunk.setBlock(new Vector3(
+                    pos.x % CHUNK_WIDTH,
+                    pos.y,
+                    pos.z % CHUNK_WIDTH,
+                ), state)
+            })
     }
 
     load() {
     }
 
     async save() {
-        const folderPath = path.join(this.server.saveLocation, String(this.wid))
-        const folder = await fs.mkdir(folderPath, { recursive: true })
-
-
+        const folder = await fs.mkdir(this.getFolderPath(), { recursive: true })
         const promises = []
         for (const [pos, chunk] of this.chunks.entries()) {
-            const chunkPath = path.join(folderPath, pos)
+            const chunkPath = path.join(this.getFolderPath(), pos)
 
             promises.push(
                 promisify(zlib.deflate)(
@@ -106,23 +126,28 @@ export class World {
         return totalPath
     }
 
-    private forNeighbors(pos: Vector3, cb: (neighbor: Vector3) => void) {
-        const ifAllowed = (n: Vector3) => {
+    private async forNeighbors(pos: Vector3, cb: ((neighbor: Vector3) => Promise<void>)) {
+        const ifAllowed = async (n: Vector3) => {
             // TODO: mining blocks to get to location
-            if (this.getBlock(n) === undefined) {
-                cb(n)
+
+            const state = (await this.getBlock(n))
+            console.log(`Block access: ${pos.toString()} = ${state?.name ?? "minecraft:air"}`)
+            if (state === undefined) {
+                await cb(n)
             }
         }
         
-        ifAllowed(pos.add( 1,  0,  0))
-        ifAllowed(pos.add(-1,  0,  0))
-        ifAllowed(pos.add( 0,  1,  0))
-        ifAllowed(pos.add( 0, -1,  0))
-        ifAllowed(pos.add( 0,  0,  1))
-        ifAllowed(pos.add( 0,  0, -1))
+        await Promise.all([
+            ifAllowed(pos.add( 1,  0,  0)),
+            ifAllowed(pos.add(-1,  0,  0)),
+            ifAllowed(pos.add( 0,  1,  0)),
+            ifAllowed(pos.add( 0, -1,  0)),
+            ifAllowed(pos.add( 0,  0,  1)),
+            ifAllowed(pos.add( 0,  0, -1)),
+        ])
     }
 
-    searchPath(start: Vector3, end: Vector3) {
+    async searchPath(start: Vector3, end: Vector3) {
         // this function is a plight on man
         // this function does and continues to drag humanity down
         if (start.equals(end)) return
@@ -151,7 +176,7 @@ export class World {
 
            open.delete(current)
 
-           this.forNeighbors(Vector3.fromString(current), (n) => {
+           await this.forNeighbors(Vector3.fromString(current), async (n) => {
                 const newGScore = (g.get(current) ?? Infinity) + 1 // TODO: replace with d
                 if (newGScore < (g.get(n.toString()) ?? Infinity)) {
                     from.set(n.toString(), current)

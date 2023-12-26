@@ -8,6 +8,7 @@ import kick from "./kick";
 import move from "./move";
 import rethink from "./rethink";
 import save from "./save";
+import what from "./what";
 
 type CommandsList = { [x: string]: ((server: Server, args: string[]) => void) | ((server: Server, args: string[]) => Promise<void>) }
 
@@ -19,6 +20,7 @@ export class Commands {
         move,
         rethink,
         save,
+        what,
     }
     interface = readline.createInterface({
         input,

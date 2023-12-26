@@ -34,7 +34,6 @@ function Machine.open()
     Machine.alive = true
 
     while Machine.alive do
-        print("Current state: ", Machine.state)
         local continue_state = states[Machine.state]
         if not Machine.state or not continue_state then
             Machine.change_state("idle")

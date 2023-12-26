@@ -34,6 +34,7 @@ function Net.log(message)
 end
 
 function Net.send(object, arg)
+    if not Net.socket then return end
     if type(object) == "string" then
         return Net.send({ id = object, data = arg })
     end
@@ -43,6 +44,15 @@ end
 
 function Net.open()
     while true do
-        Net.receive() -- TODO: try re-opening socket
+        print("Reconnecting.")
+        local success, error = pcall(function()
+            Net.connect()
+            State.upload()
+            while true do
+                Net.receive() -- TODO: try re-opening socket
+            end
+        end)
+        if error then print("Net:", error) end
+        sleep(5)
     end
 end

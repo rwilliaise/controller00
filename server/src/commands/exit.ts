@@ -1,5 +1,6 @@
 import { Server } from "../server";
 
 export default function exit(server: Server, args: string[]) {
-    process.exit(parseInt(args[0] ?? "0"))
+    server.world.save()
+        .finally(() => process.exit(parseInt(args[0] ?? "0")))
 }

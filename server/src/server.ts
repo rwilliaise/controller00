@@ -23,9 +23,5 @@ export class Server {
     async connected(socket: WebSocket, request: IncomingMessage) {
         this.world.add(socket)
     }
-
-    async save() {
-
-    }
 }
 

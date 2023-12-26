@@ -1,5 +1,5 @@
 
-local BLOCK_SCANNER = { name = "plethora:module", damage = 2 }
+BLOCK_SCANNER = { name = "plethora:module", damage = 2 }
 
 CARDINALS = {
     north = vector.new(0, 0, -1),
@@ -116,7 +116,6 @@ setInspect("up", turtle.inspectUp)
 setInspect("down", turtle.inspectDown)
 
 function State.scan()
-    print("HELLO??")
     if State.equip_item(BLOCK_SCANNER) then
         local scanner = peripheral.find("plethora:scanner")
         if scanner == nil then return State.unequip_item() end

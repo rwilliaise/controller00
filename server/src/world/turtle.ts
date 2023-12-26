@@ -15,6 +15,12 @@ const DIRECTIONS = {
     e: new Vector3(1, 0, 0),
 }
 
+const SCAN_BLACKLIST = [
+    "computercraft:turtle_expanded",
+    "computercraft:turtle_advanced",
+    "minecraft:air",
+]
+
 interface TurtleState {
     fuel: number
     inventory: Item[]
@@ -109,14 +115,13 @@ export class Turtle {
 
         try {
             for (const data of (obj.data as UpdateWorldData[])) {
-                if (data.data !== undefined && data.data.name === "minecraft:air") continue
                 this.world.setBlock(
                     new Vector3(
                         data.pos.x,
                         data.pos.y,
                         data.pos.z,
                     ),
-                    data.data !== undefined ? new BlockState(data.data.name, data.data.metadata ?? 0) : undefined
+                    (data.data !== undefined && !SCAN_BLACKLIST.includes(data.data.name)) ? new BlockState(data.data.name, data.data.metadata ?? 0) : undefined
                 )
 
             }
@@ -133,15 +138,23 @@ export class Turtle {
         console.log(`Turtle ${this.uid}: ${obj.data}`)
     }
 
-    findPath() {
+    async findPath() {
         if (this.moveTo === undefined) return
-        if (this.moveTo.equals(this.pos) || this.world.getBlock(this.moveTo) !== undefined) {
+        const block = await this.world.getBlock(this.moveTo)
+        if (this.moveTo.equals(this.pos) || block !== undefined) {
+            if (block !== undefined) {
+                console.log(`Turtle ${this.uid}: Block is full: ${this.moveTo.toString()}`)
+            }
             this.moveTo = undefined
             return
         }
-        const path = this.world.searchPath(this.pos, this.moveTo)
+        const path = await this.world.searchPath(this.pos, this.moveTo)
         
-        if (path === undefined) return
+        if (path === undefined) {
+            console.log(`Turtle ${this.uid}: failed to find viable path.`)
+            this.moveTo = undefined
+            return
+        }
         let data = ""
 
         let lastPoint = path[0]

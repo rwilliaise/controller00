@@ -8,11 +8,12 @@ end
 
 function module.follow_path()
     if not State.current_path then return Machine.stop_state() end
-    if not State.current_path[State.current_path_point] then return Machine.stop_state() end
+    if not State.current_path[State.current_path_point] then
+        Net.log("Finished path.")
+        return Machine.stop_state()
+    end
     local point = State.current_path[State.current_path_point]
-    print("Starting scan")
     State.scan()
-    print("Finished scan")
 
     if State[point] then -- up, down
         if State.inspect[point] and State.inspect[point]() then
@@ -36,7 +37,6 @@ function module.stop_idle()
 end
 
 function module.idle()
-    print("Idling.")
     while true do
         local event = os.pullEventRaw()
         if event == "terminate" then
