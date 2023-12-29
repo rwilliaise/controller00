@@ -50,7 +50,6 @@ export class Turtle {
         request_path: this.requestPath,
         log: this.log,
     }
-    moveTo?: Vector3
     pos = new Vector3()
     inventory: Item[] = []
     fuel?: number
@@ -131,28 +130,28 @@ export class Turtle {
     }
 
     requestPath(obj: any) {
-        this.findPath()
+        if (typeof obj.data !== "object") return
+        this.findPath(new Vector3(obj.data.x, obj.data.y, obj.data.z))
     }
     
     log(obj: any) {
         console.log(`Turtle ${this.uid}: ${obj.data}`)
     }
 
-    async findPath() {
-        if (this.moveTo === undefined) return
-        const block = await this.world.getBlock(this.moveTo)
-        if (this.moveTo.equals(this.pos) || block !== undefined) {
+    async findPath(moveTo: Vector3) {
+        const block = await this.world.getBlock(moveTo)
+        if (moveTo.equals(this.pos) || block !== undefined) {
             if (block !== undefined) {
-                console.log(`Turtle ${this.uid}: Block is full: ${this.moveTo.toString()}`)
+                console.log(`Turtle ${this.uid}: Block is full: ${moveTo.toString()}`)
             }
-            this.moveTo = undefined
+            this.send({ id: "path_calculated", error: "Goal is invalid" })
             return
         }
-        const path = await this.world.searchPath(this.pos, this.moveTo)
+        const path = await this.world.searchPath(this.pos, moveTo)
         
         if (path === undefined) {
             console.log(`Turtle ${this.uid}: failed to find viable path.`)
-            this.moveTo = undefined
+            this.send({ id: "path_calculated", error: "Failed to find viable path" })
             return
         }
         let data = ""
@@ -178,15 +177,13 @@ export class Turtle {
             console.log(`Turtle ${this.uid} does not have enough fuel. Aborting path.`)
             return
         }
-        this.sendData("follow_path", data)
+        this.sendData("path_calculated", data)
     }
 
     newPath(to: Vector3) {
         if (to.equals(this.pos)) {
-            this.moveTo = undefined
             return
         }
-        this.moveTo = to
-        this.findPath()
+        this.findPath(to)
     }
 }

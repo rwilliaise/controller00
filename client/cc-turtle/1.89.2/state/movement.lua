@@ -31,15 +31,6 @@ RIGHT = {
     west = "north",
 }
 
-local function toVector(point)
-    return vector.new(point.x, point.y, point.z)
-end
-
-function State.request_path()
-    Machine.stop_state()
-    Net.send("request_path")
-end
-
 local s2d = {
     n = "north",
     s = "south",
@@ -60,8 +51,9 @@ function State.start_path(server_path)
 
     State.current_path_point = 1
     State.current_path = out_path
-    Machine.change_state("follow_path")
-    return true
+
+    Machine.stop_waiting()
+    coroutine.resume(Machine.thread)
 end
 
 function State.forward()
@@ -70,7 +62,7 @@ function State.forward()
     -- TODO: check self.state.direction with gps.locate
     local success = turtle.forward()
     if success then
-        local pos = toVector(State.state.position)
+        local pos = Util.to_vector(State.state.position)
         State.state.position = pos:add(CARDINALS[State.state.direction])
     end
     return success
@@ -79,7 +71,7 @@ end
 function State.up()
     local success = turtle.up()
     if success then
-        local pos = toVector(State.state.position)
+        local pos = Util.to_vector(State.state.position)
         State.state.position = pos:add(DIRECTIONS.up)
     end
     return success
@@ -88,7 +80,7 @@ end
 function State.down()
     local success = turtle.down()
     if success then
-        local pos = toVector(State.state.position)
+        local pos = Util.to_vector(State.state.position)
         State.state.position = pos:add(DIRECTIONS.down)
     end
     return success
@@ -102,7 +94,7 @@ local function setInspect(name, func)
         Net.send("update_world",
             {
                 {
-                    pos = toVector(State.state.position):add(DIRECTIONS[name] or CARDINALS[State.state.direction]),
+                    pos = Util.to_vector(State.state.position):add(DIRECTIONS[name] or CARDINALS[State.state.direction]),
                     data = exists and data or nil
                 }
             }
@@ -123,9 +115,9 @@ function State.scan()
         local scan = scanner.scan()
         local world_out = {}
         for _, block in pairs(scan) do
-            local pos = toVector(block)
+            local pos = Util.to_vector(block)
             local out = {
-                pos = toVector(State.state.position):add(pos),
+                pos = Util.to_vector(State.state.position):add(pos),
                 data = {
                     name = block.name,
                     metadata = block.metadata,

@@ -6,8 +6,11 @@ function module.stop_follow_path()
     State.current_path_point = nil
 end
 
-function module.follow_path()
-    if not State.current_path then return Machine.stop_state() end
+function module.pathing()
+    if not State.current_path then
+        Net.send("request_path", State.move_to)
+        if not Machine.wait() then return end
+    end
     if not State.current_path[State.current_path_point] then
         Net.log("Finished path.")
         return Machine.stop_state()
@@ -17,7 +20,8 @@ function module.follow_path()
 
     if State[point] then -- up, down
         if State.inspect[point] and State.inspect[point]() then
-            return State.request_path()
+            State.current_path = nil
+            return
         end
         if State[point]() then -- yuck
             State.current_path_point = State.current_path_point + 1
@@ -26,28 +30,21 @@ function module.follow_path()
     end
 
     State.face_direction(point)
-    if State.inspect.forward() then return State.request_path() end
+    if State.inspect.forward() then
+        State.current_path = nil
+        return
+    end
     if State.forward() then
         State.current_path_point = State.current_path_point + 1
     end
 end
 
 function module.stop_idle()
-    Machine.restart = true
+    Machine.stop_waiting()
 end
 
 function module.idle()
-    while true do
-        local event = os.pullEventRaw()
-        if event == "terminate" then
-            Machine.alive = false
-            break
-        end
-        if Machine.restart then
-            Machine.restart = nil
-            break
-        end
-    end
+    Machine.wait()
 end
 
 return module

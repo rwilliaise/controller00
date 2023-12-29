@@ -29,6 +29,24 @@ function Machine.change_state(new_state)
     coroutine.resume(Machine.thread)
 end
 
+function Machine.stop_waiting()
+    Machine.restart = true
+end
+
+function Machine.wait()
+    while true do
+        local event = os.pullEventRaw()
+        if event == "terminate" then
+            Machine.alive = false
+            return false
+        end
+        if Machine.restart then
+            Machine.restart = nil
+            return true
+        end
+    end
+end
+
 function Machine.open()
     Machine.thread = coroutine.running()
     Machine.alive = true
