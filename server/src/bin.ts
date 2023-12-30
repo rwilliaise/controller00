@@ -26,4 +26,3 @@ const options = yargs(process.argv.slice(2))
 
 export type Args = typeof options
 new Server(options)
-

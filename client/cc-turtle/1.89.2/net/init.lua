@@ -12,8 +12,6 @@ function Net.connect()
     if not Net.socket then
         error("server not open.")
     end
-
-    Net.send("introduce", os.computerID())
 end
 
 function Net.receive()

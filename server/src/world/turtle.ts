@@ -67,6 +67,8 @@ export class Turtle {
     constructor(public world: World, public ws: WebSocket) {
         this.ws.on("message", (data, bin) => this.receive(data, bin))
         this.ws.on("close", (code, reason) => this.close(code, reason))
+
+        this.send({ id: "introduce" })
     }
 
     close(code: number, reason: Buffer) {

@@ -42,4 +42,9 @@ function module.rethink()
     Net.log("rethink finished")
 end
 
+function module.introduce()
+    Net.send("introduce", os.computerID())
+    State.upload()
+end
+
 return module

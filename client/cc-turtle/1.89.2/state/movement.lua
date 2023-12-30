@@ -130,7 +130,7 @@ setInspect("forward", turtle.inspect)
 setInspect("up", turtle.inspectUp)
 setInspect("down", turtle.inspectDown)
 
-local BATCH_SIZE = 16
+local BATCH_SIZE = 16 * 16
 
 function State.scan()
     if State.equip_item(BLOCK_SCANNER) then

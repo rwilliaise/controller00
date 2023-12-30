@@ -1,4 +1,4 @@
-lua ../../amalg.lua -s init.lua -o dist.lua -- \
+lua ../../amalg.lua -s init.lua -o dist_unminified.lua -- \
     item \
     util \
     config \
@@ -9,3 +9,6 @@ lua ../../amalg.lua -s init.lua -o dist.lua -- \
     state.machine.states \
     net \
     net.packet
+echo "Amalgamation complete"
+lua ../../minifier.lua dist_unminified.lua dist.lua
+echo "Done building"

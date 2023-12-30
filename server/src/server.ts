@@ -21,6 +21,12 @@ export class Server {
     }
 
     async connected(socket: WebSocket, request: IncomingMessage) {
+        const response = await this.commands.interface.question(`Turtle ${this.currentUid} (${request.socket.remoteAddress}) requesting to join. Approve? [y/N] `)
+        this.commands.interface.prompt()
+        if (response.trim().toLowerCase() !== "y") {
+            socket.close()
+            return
+        }
         this.world.add(socket)
     }
 }
