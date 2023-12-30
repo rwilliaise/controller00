@@ -29,7 +29,11 @@ export class Chunk {
         if (pos.y < 0 || pos.y >= CHUNK_HEIGHT) return
         if (pos.z < 0 || pos.z >= CHUNK_WIDTH) return
         if (state === undefined) {
+            const pid = this.blocks[pos.z * CHUNK_WIDTH * CHUNK_HEIGHT + pos.y * CHUNK_WIDTH + pos.x] 
             delete this.blocks[pos.z * CHUNK_WIDTH * CHUNK_HEIGHT + pos.y * CHUNK_WIDTH + pos.x]
+            if (!this.blocks.includes(pid)) {
+                this.palette.delete(pid)
+            }
             return
         }
         let outPid = -1

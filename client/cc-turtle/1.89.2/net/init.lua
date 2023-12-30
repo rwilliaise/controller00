@@ -30,6 +30,7 @@ function Net.receive()
 end
 
 function Net.log(message)
+    print("remote:", message)
     Net.send("log", message)
 end
 

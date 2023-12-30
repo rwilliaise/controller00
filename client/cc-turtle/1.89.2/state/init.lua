@@ -1,6 +1,4 @@
 
-local WIRELESS_MODEM = { name = "computercraft:peripheral", damage = 1 }
-
 STATE_LOCATION = "/ctrl.dat"
 
 State = {}
@@ -65,20 +63,19 @@ function State.update()
     end
 
     if not state.position and State.equip_item(WIRELESS_MODEM) then
-        state.position = vector.new(gps.locate(5, true))
+        local x, y, z = gps.locate(5)
+        if not x then error("Failed to get position.") end
+        state.position = vector.new(x, y, z)
         State.unequip_item()
     elseif not state.position then
-        if not State.has_item(WIRELESS_MODEM) then
-            print("No wireless modem!")
-        end
-        print("Input current coordinates of turtle:")
-        local coordinates = io.read("*l")
-        -- TODO
+        error("Requires wireless modem.")
     end
 
     if not state.direction and State.equip_item(WIRELESS_MODEM) then
         turtle.forward()
-        local new_pos = vector.new(gps.locate(5, true))
+        local x, y, z = gps.locate(5)
+        if not x then error("Failed to get position.") end
+        local new_pos = vector.new(x, y, z)
         local old_pos = state.position
 
         -- ensure metatable is there
@@ -101,12 +98,8 @@ function State.update()
         turtle.back()
         State.unequip_item()
     elseif not state.direction then
-        print("Input current direction of turtle:")
-        while true do
-            local direction = io.read("*l")
-            if CARDINALS[direction] then
-                state.direction = direction
-            end
-        end
+        error("Requires wireless modem.")
     end
+
+    state.state = Machine.state
 end

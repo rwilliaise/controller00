@@ -1,6 +1,4 @@
 
-BLOCK_SCANNER = { name = "plethora:module", damage = 2 }
-
 CARDINALS = {
     north = vector.new(0, 0, -1),
     east = vector.new(1,  0, 0),
@@ -39,6 +37,31 @@ local s2d = {
     u = "up",
     d = "down",
 }
+
+function State.continue_path()
+    local point = State.current_path[State.current_path_point]
+    State.scan()
+
+    if State[point] then -- up, down
+        if State.inspect[point] and State.inspect[point]() then
+            State.current_path = nil
+            return
+        end
+        if State[point]() then -- yuck
+            State.current_path_point = State.current_path_point + 1
+        end
+        return
+    end
+
+    State.face_direction(point)
+    if State.inspect.forward() then
+        State.current_path = nil
+        return
+    end
+    if State.forward() then
+        State.current_path_point = State.current_path_point + 1
+    end
+end
 
 function State.start_path(server_path)
     local out_path = {}
@@ -107,6 +130,8 @@ setInspect("forward", turtle.inspect)
 setInspect("up", turtle.inspectUp)
 setInspect("down", turtle.inspectDown)
 
+local BATCH_SIZE = 16
+
 function State.scan()
     if State.equip_item(BLOCK_SCANNER) then
         local scanner = peripheral.find("plethora:scanner")
@@ -125,9 +150,9 @@ function State.scan()
             }
             table.insert(world_out, out)
         end
-        for i = 1, #world_out, 4 do
+        for i = 1, #world_out, BATCH_SIZE do
             local split = {}
-            for j = 0, 3 do
+            for j = 0, (BATCH_SIZE - 1) do
                 if not world_out[i + j] then break end
                 table.insert(split, world_out[i + j])
             end
@@ -158,11 +183,9 @@ function State.face_direction(cardinal)
 
     local turns = (c_turns < cc_turns) and c_turns or cc_turns
     local turn_function = (c_turns < cc_turns) and State.turn_right or State.turn_left
-    print(turns)
     for i = 1, turns do
         turn_function()
     end
-    print(State.state.direction)
 end
 
 function State.turn_left()

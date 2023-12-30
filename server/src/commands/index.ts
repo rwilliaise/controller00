@@ -9,6 +9,11 @@ import move from "./move";
 import rethink from "./rethink";
 import save from "./save";
 import what from "./what";
+import scan from "./scan";
+import excavate from "./excavate";
+import track from "./track";
+import cancel from "./cancel";
+import netstat from "./netstat";
 
 type CommandsList = { [x: string]: ((server: Server, args: string[]) => void) | ((server: Server, args: string[]) => Promise<void>) }
 
@@ -21,6 +26,11 @@ export class Commands {
         rethink,
         save,
         what,
+        scan,
+        excavate,
+        track,
+        cancel,
+        netstat,
     }
     interface = readline.createInterface({
         input,

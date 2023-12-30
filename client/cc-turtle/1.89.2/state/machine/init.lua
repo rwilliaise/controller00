@@ -10,7 +10,7 @@ function Machine.stop_state()
 
     local stop_state = states["stop_" .. Machine.state]
     if stop_state then
-        stop_state(Machine)
+        stop_state()
     end
     Machine.state = nil
 end
@@ -19,28 +19,34 @@ function Machine.change_state(new_state)
     if Machine.state == new_state then return end
 
     Machine.stop_state()
+    Machine.state = new_state
 
-    local start_state = states["start_" .. new_state]
+    local start_state = states["start_" .. Machine.state]
     if start_state then
-        start_state(Machine)
+        start_state()
     end
 
-    Machine.state = new_state
+    Machine.stop_waiting()
     coroutine.resume(Machine.thread)
 end
 
 function Machine.stop_waiting()
+    if not Machine.waiting then return end
     Machine.restart = true
 end
 
+-- wait until .stop_waiting()
 function Machine.wait()
     while true do
         local event = os.pullEventRaw()
+        Machine.waiting = true
         if event == "terminate" then
+            Machine.waiting = false
             Machine.alive = false
             return false
         end
         if Machine.restart then
+            Machine.waiting = false
             Machine.restart = nil
             return true
         end

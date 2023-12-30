@@ -1,7 +1,7 @@
 import WebSocket from "ws"
 import { Vector2, Vector3 } from "../math"
 import { BlockState } from "./block"
-import { Chunk, CHUNK_WIDTH } from "./chunk"
+import { Chunk, CHUNK_HEIGHT, CHUNK_WIDTH } from "./chunk"
 import { Turtle } from "./turtle"
 import { Server } from "../server"
 
@@ -16,6 +16,7 @@ export class World {
     address?: string
     turtles = new Set<Turtle>()
     chunks = new Map<string, Chunk>()
+    tracking = new Set<string>()
     wid = 0
 
     constructor(public server: Server, private location: string) {}
@@ -37,6 +38,23 @@ export class World {
         return path.join(this.server.saveLocation, String(this.wid))
     }
 
+    /**
+     * Get the height of the world at block pos `position` (x, z).
+     */
+    async getHeight(position: Vector2): Promise<number | undefined> {
+        for (let i = 255; i >= 0; i--) {
+            const state = await this.getBlock(new Vector3(
+                position.x,
+                i,
+                position.y
+            ))
+            if (state !== undefined) {
+                return i
+            }
+        }
+        return undefined
+    }
+
     async getChunk(pos: Vector2): Promise<Chunk | undefined> {
         let out = this.chunks.get(pos.toString())
         if (out === undefined) {
@@ -46,12 +64,13 @@ export class World {
                     .then(b => promisify(zlib.inflate)(b))
                     .then(b => b.toString())
                     .then(s => JSON.parse(s))
+                if (this.chunks.has(pos.toString())) return this.chunks.get(pos.toString())
                 out = new Chunk()
                 out.blocks = chunk.blocks
                 out.palette = new Map(chunk.palette)
+                console.log(`Loading chunk at ${pos.toString()}`)
                 this.chunks.set(pos.toString(), out)
             } catch {
-                console.log("bro?")
                 return undefined
             }
         }
@@ -62,32 +81,42 @@ export class World {
         let out = await this.getChunk(pos)
         if (out === undefined) {
             out = new Chunk()
-            this.chunks.set(pos.toString(), out)
+            // bro...
+            if (!this.chunks.has(pos.toString())) {
+                console.log(`Creating new chunk at ${pos.toString()}`)
+                this.chunks.set(pos.toString(), out)
+            } else {
+                out = this.chunks.get(pos.toString()) as Chunk
+            }
         }
         return out
     }
 
     async getBlock(pos: Vector3): Promise<BlockState | undefined> {
-        const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
+        const chunkPos = new Vector2(pos.x >> 4, pos.z >> 4)
         const chunk = await this.getChunk(chunkPos)
         if (chunk === undefined) return undefined
         return chunk.getBlock(new Vector3(
-            pos.x % CHUNK_WIDTH,
+            pos.x & 0xF,
             pos.y,
-            pos.z % CHUNK_WIDTH,
+            pos.z & 0xF,
         ))
     }
 
-    setBlock(pos: Vector3, state?: BlockState) {
+    async setBlock(pos: Vector3, state?: BlockState) {
         const chunkPos = new Vector2(Math.floor(pos.x / 16), Math.floor(pos.z / 16))
-        this.getOrCreateChunk(chunkPos)
-            .then(chunk => {
-                chunk.setBlock(new Vector3(
-                    pos.x % CHUNK_WIDTH,
-                    pos.y,
-                    pos.z % CHUNK_WIDTH,
-                ), state)
-            })
+        const chunk = await this.getOrCreateChunk(chunkPos)
+        if (this.tracking.has(pos.toString())) {
+            const old = await this.getBlock(pos)
+            if (old?.name !== state?.name || old?.meta !== state?.meta) {
+                console.log(`Tracked (${pos.toString()}) -> ${state?.name}`)
+            }
+        }
+        chunk.setBlock(new Vector3(
+            pos.x & 0xF,
+            pos.y,
+            pos.z & 0xF,
+        ), state)
     }
 
     load() {
@@ -131,7 +160,6 @@ export class World {
             // TODO: mining blocks to get to location
 
             const state = (await this.getBlock(n))
-            console.log(`Block access: ${pos.toString()} = ${state?.name ?? "minecraft:air"}`)
             if (state === undefined) {
                 await cb(n)
             }

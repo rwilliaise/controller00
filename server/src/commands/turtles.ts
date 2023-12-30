@@ -11,6 +11,9 @@ export default function turtles(server: Server, args: string[]) {
                 (n, c) => c.name !== undefined ? n + 1 : n,
                 0
             )} item(s)`,
+            state: turtle.state ?? "idle",
+            received: turtle.received,
+            sent: turtle.sent,
         }
     }
     console.table(table)

@@ -1,6 +1,6 @@
 import WebSocket, { RawData } from "ws";
 import { World } from ".";
-import {Vector3} from "../math";
+import {Vector2, Vector3} from "../math";
 import { Item } from "./item";
 import {BlockState} from "./block";
 
@@ -30,6 +30,7 @@ interface TurtleState {
     }
     position: { x: number, y: number, z: number }
     direction: string
+    state: string
 }
 
 type UpdateWorldData = {
@@ -54,6 +55,14 @@ export class Turtle {
     inventory: Item[] = []
     fuel?: number
     direction = "unknown"
+    state = "idle"
+
+    received = 0
+    sent = 0
+    netstat = {
+        received: {} as Record<string, number>,
+        sent: {} as Record<string, number>
+    }
 
     constructor(public world: World, public ws: WebSocket) {
         this.ws.on("message", (data, bin) => this.receive(data, bin))
@@ -76,10 +85,15 @@ export class Turtle {
 
         if (method === undefined) return
         if (typeof method !== "function") return
+        
+        this.received++
+        this.netstat.received[obj.id] = (this.netstat.received[obj.id] ?? 0) + 1
         method.call(this, obj)
     }
 
     send(obj: any) {
+        this.sent++
+        this.netstat.sent[obj.id] = (this.netstat.sent[obj.id] ?? 0) + 1
         this.ws.send(JSON.stringify(obj))
     }
 
@@ -106,15 +120,16 @@ export class Turtle {
             this.inventory = state.inventory
             this.fuel = state.fuel
             this.direction = state.direction
+            this.state = state.state
         } catch {}
     }
 
     updateWorld(obj: any) {
         if (obj.data === undefined) return
-
-        try {
+        // oh my god
+        (async () => {
             for (const data of (obj.data as UpdateWorldData[])) {
-                this.world.setBlock(
+                await this.world.setBlock(
                     new Vector3(
                         data.pos.x,
                         data.pos.y,
@@ -124,9 +139,7 @@ export class Turtle {
                 )
 
             }
-        } catch (e) {
-            console.log(`Failed to update world: ${e}`)
-        }
+        })().catch(e => console.log(`Failed to update world: ${e}`))
     }
 
     requestPath(obj: any) {
@@ -147,7 +160,25 @@ export class Turtle {
             this.send({ id: "path_calculated", error: "Goal is invalid" })
             return
         }
-        const path = await this.world.searchPath(this.pos, moveTo)
+
+        let pathTo = new Vector3(
+            moveTo.x,
+            moveTo.y,
+            moveTo.z
+        ) 
+        if (moveTo.y < 0) {
+            const height = await this.world.getHeight(new Vector2(
+                moveTo.x,
+                moveTo.z
+            ))
+            let targetY = 0
+            if (height !== undefined)
+                targetY = height + 1
+            else if (moveTo.y === -1)
+                targetY = this.pos.y
+            pathTo.y = targetY
+        }
+        const path = await this.world.searchPath(this.pos, pathTo)
         
         if (path === undefined) {
             console.log(`Turtle ${this.uid}: failed to find viable path.`)
@@ -178,12 +209,5 @@ export class Turtle {
             return
         }
         this.sendData("path_calculated", data)
-    }
-
-    newPath(to: Vector3) {
-        if (to.equals(this.pos)) {
-            return
-        }
-        this.findPath(to)
     }
 }

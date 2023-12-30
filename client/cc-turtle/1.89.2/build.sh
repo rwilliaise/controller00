@@ -1,4 +1,5 @@
 lua ../../amalg.lua -s init.lua -o dist.lua -- \
+    item \
     util \
     config \
     state \

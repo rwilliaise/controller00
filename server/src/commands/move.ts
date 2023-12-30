@@ -17,7 +17,7 @@ export default function move(server: Server, args: string[]) {
     for (const turtle of server.turtles) {
         if (turtle.uid === uid) {
             turtle.world.setBlock(pos, undefined) // ensure it works
-            turtle.newPath(pos)
+            turtle.sendData("start_pathing", pos)
             return
         }
     }
